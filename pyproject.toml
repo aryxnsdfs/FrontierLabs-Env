@@ -19,3 +19,6 @@ dependencies = [
 
 [project.scripts]
 server = "server.app:main"
+
+[tool.setuptools.packages.find]
+exclude = ["outputs*"]

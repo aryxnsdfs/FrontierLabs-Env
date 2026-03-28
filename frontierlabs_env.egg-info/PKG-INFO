@@ -7,10 +7,18 @@ Description-Content-Type: text/markdown
 Requires-Dist: fastapi>=0.111.0
 Requires-Dist: uvicorn[standard]>=0.29.0
 Requires-Dist: pydantic>=2.7.0
-Requires-Dist: google-genai>=0.3.0
+Requires-Dist: openai>=1.0.0
 Requires-Dist: pyyaml>=6.0.1
 Requires-Dist: openenv-core>=0.2.0
 
+---
+title: FrontierLabs-Env
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
 # FrontierLabs-Env 🚀
 
 > **An OpenEnv-compliant AI Infrastructure Simulation Sandbox** — drops an AI agent into a failing PyTorch/GPU supercomputing environment. The agent must autonomously act as a Principal AI Infrastructure Engineer.
@@ -180,8 +188,8 @@ open http://localhost:7860
 # 4. Run the baseline agent (no API key needed — uses expert solutions)
 python inference.py
 
-# 5. Run baseline with Gemini
-GEMINI_API_KEY=AIzaSy... python inference.py
+# 5. Run baseline with OpenAI-compatible API
+HF_TOKEN=xyz API_BASE_URL=https://... MODEL_NAME=... python inference.py
 ```
 
 ### Docker
@@ -193,8 +201,8 @@ docker build -t frontierlabs-env .
 # Run
 docker run -p 7860:7860 frontierlabs-env
 
-# With Gemini key
-docker run -p 7860:7860 -e GEMINI_API_KEY=AIzaSy... frontierlabs-env
+# With LLM API
+docker run -p 7860:7860 -e HF_TOKEN=xyz -e API_BASE_URL=https://... -e MODEL_NAME=... frontierlabs-env
 ```
 
 ### Quick curl walkthrough
@@ -252,7 +260,7 @@ FrontierLabs-Env/
 ├── main.py           # FastAPI server + dashboard + all endpoints
 ├── environment.py    # State machine, simulated filesystem, action handlers
 ├── graders.py        # Deterministic graders (AST + regex + math)
-├── inference.py      # Baseline inference script (Gemini + expert mode)
+├── inference.py      # Baseline inference script (LLM + expert mode)
 ├── requirements.txt  # Python dependencies
 ├── Dockerfile        # HF Spaces compatible container
 └── README.md         # This file
@@ -264,8 +272,9 @@ FrontierLabs-Env/
 
 | Variable | Default | Description |
 |---|---|---|
-| `GEMINI_API_KEY` | — | Gemini API key for baseline agent |
-| `GEMINI_MODEL` | `gemini-1.5-flash` | Model for baseline inference |
+| `HF_TOKEN` | — | API key for baseline agent |
+| `API_BASE_URL` | `https://api.openai.com/v1` | LLM API Base URL |
+| `MODEL_NAME` | `gpt-4o` | Model identifier for baseline inference |
 | `FRONTIER_ENV_URL` | `http://localhost:7860` | Environment server URL |
 | `PORT` | `7860` | Server port |
 
