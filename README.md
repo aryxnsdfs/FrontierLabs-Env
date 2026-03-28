@@ -1,0 +1,287 @@
+# FrontierLabs-Env 🚀
+
+> **An OpenEnv-compliant AI Infrastructure Simulation Sandbox** — drops an AI agent into a failing PyTorch/GPU supercomputing environment. The agent must autonomously act as a Principal AI Infrastructure Engineer.
+
+[![OpenEnv](https://img.shields.io/badge/OpenEnv-v1.0-blue)](https://openenv.ai)
+[![HF Space](https://img.shields.io/badge/🤗-HuggingFace%20Space-yellow)](https://huggingface.co/spaces/frontierlabs/FrontierLabs-Env)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED)](https://hub.docker.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688)](https://fastapi.tiangolo.com)
+
+---
+
+## Motivation
+
+As AI models scale to hundreds of billions of parameters, evaluating agents on elite infrastructure tasks — data security auditing, distributed training optimization, and GPU kernel engineering — is impossible without risking actual multi-million-dollar server clusters.
+
+**FrontierLabs-Env solves this** by providing a strictly deterministic, fully sandboxed simulation of these scenarios with programmatic graders and a rich partial-reward signal.
+
+---
+
+## Environment Description
+
+The agent interacts with a **simulated filesystem** on a virtual GPU supercomputing cluster. It reads files, writes code, executes scripts (simulated), and submits solutions. The environment tracks progress through a state machine that rewards correct partial steps, not just final answers.
+
+---
+
+## Observation Space
+
+Every step returns an `Observation` object:
+
+| Field | Type | Description |
+|---|---|---|
+| `task_id` | `str` | Active task identifier |
+| `step` | `int` | Current step number |
+| `done` | `bool` | Whether the episode has ended |
+| `message` | `str` | Human-readable task description |
+| `files` | `dict[str, str]` | Simulated filesystem preview (5-line snippets) |
+| `metrics` | `dict` | Live infrastructure metrics (memory, latency, etc.) |
+| `partial_score` | `float` | Running [0.0–1.0] score for the episode |
+
+---
+
+## Action Space
+
+All actions are JSON objects with these fields:
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `action_type` | `str` | ✅ | One of: `write_file`, `run_script`, `submit` |
+| `filename` | `str` | For `write_file` / `run_script` | Target file on simulated filesystem |
+| `content` | `str` | For `write_file` | Complete source code to write |
+
+**Action types:**
+- **`write_file`** — Write code/content to a named file on the simulated filesystem
+- **`run_script`** — Execute a script already on the filesystem (returns simulated stdout)
+- **`submit`** — Mark episode complete and trigger grading
+
+---
+
+## Tasks
+
+### Task 1 — Security Audit & Self-Evaluation (🟢 Easy)
+
+**Scenario:** A `dataset.jsonl` (200 entries) has been infected with 50 malicious backdoor prompts containing the trigger token `TRIGGER_ALPHA`.
+
+**Agent must:**
+1. Write `audit.py` to detect and remove backdoor entries → `cleaned_dataset.jsonl`
+2. Write `evaluate.py` to compare against `golden_baseline.jsonl` → `metrics_report.json`
+3. Run both scripts, then `submit`
+
+**Grader criteria (deterministic):**
+- File `cleaned_dataset.jsonl` exists → **+0.10**
+- Cleaning F1 score (precision/recall of removed entries) → **up to +0.40**
+- File `metrics_report.json` exists → **+0.10**
+- Agent's self-reported F1 matches ground truth F1 (within 1%) → **+0.40**
+
+**Max Steps:** 20 | **Pass threshold:** ≥ 0.80
+
+---
+
+### Task 2 — Distributed Cluster Crash / FSDP (🟡 Medium)
+
+**Scenario:** `train.py` crashes with CUDA Out-of-Memory because a 280GB model is loaded onto a single 40GB GPU.
+
+**Agent must:**
+1. Write `train_fsdp.py` using `torch.distributed.fsdp.FullyShardedDataParallel` across 8 GPUs
+2. Proper `dist.init_process_group` initialization
+3. Run and submit
+
+**Grader criteria (AST + keyword analysis):**
+- File exists → **+0.10**
+- 5 FSDP keywords detected → **up to +0.50**
+- AST finds `FSDP(...)` wrapper call → **+0.20**
+- Simulated memory 35GB/GPU (≤ 40GB limit) → **+0.20**
+
+**Max Steps:** 25 | **Pass threshold:** ≥ 0.80
+
+---
+
+### Task 3 — Triton Hardware Bottleneck (🔴 Hard)
+
+**Scenario:** `slow_math.py` runs a SiLU gated activation at 150ms/step due to 2 separate memory round-trips.
+
+**Agent must:**
+1. Write `fast_silu_kernel.py` with a `@triton.jit` kernel
+2. Use `tl.load` for both `x_ptr` and `gate_ptr`, compute SiLU + multiply in registers, write once via `tl.store`
+3. Run and submit
+
+**Grader criteria (AST + regex):**
+- File exists → **+0.10**
+- `@triton.jit`, `tl.load`, `tl.store` present → **up to +0.45**
+- SiLU math pattern detected (regex) → **+0.20**
+- Kernel function with pointer args found in AST → **+0.10**
+- Simulated latency 11.8ms/step (≤ 20ms target) → **+0.15**
+
+**Max Steps:** 30 | **Pass threshold:** ≥ 0.80
+
+---
+
+## Reward Function
+
+The reward signal is **non-sparse** — partial credit is awarded throughout the trajectory:
+
+| Event | Reward |
+|---|---|
+| Writing a file with correct patterns | `+0.05` to `+0.20` |
+| Running a script successfully | `+0.10` to `+0.30` |
+| Correct strategy detected at write time | `+0.10` to `+0.20` |
+| Running original buggy script (OOM) | `−0.10` |
+| Double submit | `−0.10` |
+| Unknown action type | `−0.05` |
+| Timeout (steps exhausted) | `−0.10` |
+
+All per-step rewards are clipped to `[−1.0, 1.0]`.
+
+---
+
+## API Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/` | Mission Control Dashboard (HTML) |
+| `POST` | `/reset` | Reset environment (`task_id` optional) |
+| `POST` | `/step` | Take one action |
+| `GET` | `/state` | Full internal state (debug) |
+| `GET` | `/tasks` | List tasks + action schema |
+| `GET` | `/grader` | Grade current episode |
+| `POST` | `/baseline` | Trigger baseline agent |
+| `GET` | `/health` | Health check |
+| `GET` | `/docs` | Swagger UI |
+
+---
+
+## Setup & Usage
+
+### Local Development
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Start the server
+uvicorn main:app --reload --port 7860
+
+# 3. Open dashboard
+open http://localhost:7860
+
+# 4. Run the baseline agent (no API key needed — uses expert solutions)
+python inference.py
+
+# 5. Run baseline with OpenAI-compatible API
+HF_TOKEN=xyz API_BASE_URL=https://... MODEL_NAME=... python inference.py
+```
+
+### Docker
+
+```bash
+# Build
+docker build -t frontierlabs-env .
+
+# Run
+docker run -p 7860:7860 frontierlabs-env
+
+# With LLM API
+docker run -p 7860:7860 -e HF_TOKEN=xyz -e API_BASE_URL=https://... -e MODEL_NAME=... frontierlabs-env
+```
+
+### Quick curl walkthrough
+
+```bash
+# Reset to Task 1
+curl -X POST http://localhost:7860/reset \
+  -H "Content-Type: application/json" \
+  -d '{"task_id": "task1_security_audit"}'
+
+# Write your solution
+curl -X POST http://localhost:7860/step \
+  -H "Content-Type: application/json" \
+  -d '{"action_type": "write_file", "filename": "audit.py", "content": "..."}'
+
+# Run the script
+curl -X POST http://localhost:7860/step \
+  -H "Content-Type: application/json" \
+  -d '{"action_type": "run_script", "filename": "audit.py"}'
+
+# Submit
+curl -X POST http://localhost:7860/step \
+  -H "Content-Type: application/json" \
+  -d '{"action_type": "submit"}'
+
+# Get score
+curl http://localhost:7860/grader
+```
+
+---
+
+## Baseline Scores
+
+Scores produced by the deterministic expert agent (no LLM — validates grader correctness):
+
+| Task | Score | Passed |
+|---|---|---|
+| Task 1 — Security Audit | **1.0000** | ✅ |
+| Task 2 — FSDP Cluster Fix | **1.0000** | ✅ |
+| Task 3 — Triton Kernel | **1.0000** | ✅ |
+| **Average** | **1.0000** | ✅ |
+
+Reproduce with:
+```bash
+python inference.py
+```
+
+---
+
+## Project Structure
+
+```
+FrontierLabs-Env/
+├── openenv.yaml      # OpenEnv spec (tasks, schemas, metadata)
+├── main.py           # FastAPI server + dashboard + all endpoints
+├── environment.py    # State machine, simulated filesystem, action handlers
+├── graders.py        # Deterministic graders (AST + regex + math)
+├── inference.py      # Baseline inference script (LLM + expert mode)
+├── requirements.txt  # Python dependencies
+├── Dockerfile        # HF Spaces compatible container
+└── README.md         # This file
+```
+
+---
+
+## Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `HF_TOKEN` | — | API key for baseline agent |
+| `API_BASE_URL` | `https://api.openai.com/v1` | LLM API Base URL |
+| `MODEL_NAME` | `gpt-4o` | Model identifier for baseline inference |
+| `FRONTIER_ENV_URL` | `http://localhost:7860` | Environment server URL |
+| `PORT` | `7860` | Server port |
+
+---
+
+## OpenEnv Validation
+
+The environment passes `openenv validate`:
+
+```bash
+openenv validate openenv.yaml
+# ✅ Schema valid
+# ✅ 3 tasks defined
+# ✅ Endpoints responding
+# ✅ Graders returning [0.0, 1.0] scores
+```
+
+---
+
+## Hackathon Checklist
+
+- [x] Real-world task simulation (GPU infrastructure engineering)
+- [x] OpenEnv spec compliance (typed models, step/reset/state)
+- [x] 3 tasks with agent graders (easy → medium → hard)
+- [x] Meaningful reward function with partial progress signals
+- [x] Baseline inference script with reproducible scores
+- [x] `openenv.yaml` metadata
+- [x] Working Dockerfile (HF Spaces compatible, port 7860)
+- [x] `/baseline`, `/grader`, `/tasks` endpoints
+- [x] Mission Control dashboard at `/`
+- [x] README with full documentation

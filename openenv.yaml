@@ -1,0 +1,115 @@
+name: FrontierLabs-Env
+version: "1.0.0"
+description: >
+  A strictly deterministic, OpenEnv-compliant simulation sandbox that drops an AI agent
+  into a failing PyTorch/GPU supercomputing environment. The agent must autonomously act
+  as a Principal AI Infrastructure Engineer: hunting poisoned data, fixing Out-Of-Memory
+  (OOM) cluster crashes, and writing low-level hardware kernels to accelerate training.
+author: FrontierLabs Team
+tags:
+  - openenv
+  - ai-infrastructure
+  - gpu-computing
+  - data-security
+  - pytorch
+  - triton
+
+homepage: https://huggingface.co/spaces/frontierlabs/FrontierLabs-Env
+api_version: "1.0"
+
+observation:
+  type: object
+  description: Current state of the infrastructure environment visible to the agent
+  properties:
+    task_id:
+      type: string
+      description: Current active task identifier
+    step:
+      type: integer
+      description: Current step number in the episode
+    done:
+      type: boolean
+      description: Whether the episode has ended
+    message:
+      type: string
+      description: Human-readable description of the current environment state
+    files:
+      type: object
+      description: Map of filename to content for files available on the simulated filesystem
+    metrics:
+      type: object
+      description: Live performance metrics (latency, memory usage, GPU utilization)
+    partial_score:
+      type: number
+      description: Running partial score [0.0, 1.0] for the current episode
+
+action:
+  type: object
+  description: An action taken by the agent in the environment
+  properties:
+    action_type:
+      type: string
+      enum: [write_file, run_script, submit]
+      description: >
+        write_file: Write code/content to a named file on the simulated filesystem.
+        run_script: Execute a named script already on the filesystem.
+        submit: Mark the task as complete and trigger grading.
+    filename:
+      type: string
+      description: Target filename (required for write_file and run_script)
+    content:
+      type: string
+      description: File content to write (required for write_file)
+
+reward:
+  type: object
+  description: Reward signal returned after each step
+  properties:
+    value:
+      type: number
+      description: Step reward in range [-1.0, 1.0]
+    explanation:
+      type: string
+      description: Human-readable explanation of the reward signal
+
+tasks:
+  - id: task1_security_audit
+    name: Security Audit & Self-Evaluation
+    difficulty: easy
+    description: >
+      A dataset.jsonl file has been infected with 50 malicious backdoor prompts.
+      Write a detection script to clean it and save as cleaned_dataset.jsonl.
+      Then write an evaluation script to compare against the golden baseline and
+      output a metrics_report.json with precision, recall, and F1 score.
+    max_steps: 20
+    success_threshold: 0.8
+
+  - id: task2_fsdp_cluster
+    name: Distributed Cluster Crash (FSDP)
+    difficulty: medium
+    description: >
+      The training cluster is crashing with CUDA Out-of-Memory errors because
+      train.py loads the full model onto a single GPU. Rewrite train.py to use
+      PyTorch Fully Sharded Data Parallel (FSDP) across 8 simulated GPUs,
+      reducing peak memory per GPU below the 40GB threshold.
+    max_steps: 25
+    success_threshold: 0.8
+
+  - id: task3_triton_kernel
+    name: Triton Hardware Bottleneck
+    difficulty: hard
+    description: >
+      Severe latency (150ms/step) is detected due to a math function reading/writing
+      GPU memory too many times. Write an OpenAI Triton kernel (@triton.jit) that
+      fuses the SiLU activation and element-wise multiply into a single kernel,
+      eliminating redundant memory round-trips. Target: < 20ms/step.
+    max_steps: 30
+    success_threshold: 0.8
+
+endpoints:
+  reset: POST /reset
+  step: POST /step
+  state: GET /state
+  tasks: GET /tasks
+  grader: GET /grader
+  baseline: POST /baseline
