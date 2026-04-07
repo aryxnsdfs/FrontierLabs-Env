@@ -3,7 +3,6 @@
 </p>
 
 
-# FrontierLabs-Env 🚀
 
 > **An OpenEnv-compliant AI Infrastructure Simulation Sandbox** — drops an AI agent into a failing PyTorch/GPU supercomputing environment. The agent must autonomously act as a Principal AI Infrastructure Engineer.
 
