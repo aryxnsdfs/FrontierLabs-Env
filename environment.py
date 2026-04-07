@@ -140,7 +140,7 @@ class FrontierLabsEnv:
         self._done = False
         self._submitted = False
         self._submit_content = None
-        self._partial_score = 0.0
+        self._partial_score = 0.001
         self._last_reward = 0.0
         self._last_reward_explanation = "Episode started. Begin working on your task."
         self._run_outputs = {}

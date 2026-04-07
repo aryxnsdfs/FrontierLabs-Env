@@ -328,7 +328,7 @@ def run_task_with_llm(client: openai.OpenAI, task_id: str, verbose: bool = True)
                     print(f"    API error (attempt {attempt+1}/{max_retries}): {e}")
                 if attempt == max_retries - 1:
                     print(f"[END] task={task_id} score=0.0000 steps={actual_steps}", flush=True)
-                    return 0.0
+                    return 0.001
                 time.sleep(3)
         
         if not raw:
@@ -484,13 +484,15 @@ def main():
         except Exception as e:
             import traceback
             print(f"\n[CRASH DETECTED ON {task_id}]")
-            traceback.print_exc()  # This prints the exact line causing the issue!
+            traceback.print_exc() 
             
-            results[task_id] = {"score": 0.0, "passed": False, "error": str(e)}
+            # 🔴 CHANGE: Set fallback score to 0.001 instead of 0.0
+            results[task_id] = {"score": 0.001, "passed": False, "error": str(e)}
             if verbose:
                 print(f"  ERROR on {task_id}: {e}")
     
-    avg = sum(r["score"] for r in results.values()) / len(results) if results else 0.0
+    # 🔴 CHANGE: Set fallback average to 0.001
+    avg = sum(r["score"] for r in results.values()) / len(results) if results else 0.001
     summary = {
         "model": MODEL_NAME if use_llm else "expert",
         "task_results": results,
