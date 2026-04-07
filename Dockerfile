@@ -1,7 +1,7 @@
 # FrontierLabs-Env Dockerfile
 # Hugging Face Spaces compatible (port 7860, non-root user)
 
-FROM python:3.11-slim
+FROM python:3.11.8-slim-bookworm
 
 # HF Spaces metadata
 LABEL maintainer="FrontierLabs Team"
