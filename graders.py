@@ -1,6 +1,6 @@
 """
 FrontierLabs-Env: Deterministic Graders
-All graders return a float in [0.0, 1.0] based on strict programmatic analysis.
+All graders return a float strictly in (0.0, 1.0) based on strict programmatic analysis.
 """
 
 import json
@@ -27,7 +27,7 @@ def grade_task1(env_state: Dict[str, Any], get_file) -> Tuple[float, Dict[str, A
     3. metrics_report.json exists (0.1)
     4. Agent's self-reported F1 matches ground truth F1 (0.4)
 
-    Returns score in [0.0, 1.0].
+    Returns score strictly in (0.0, 1.0).
     """
     details: Dict[str, Any] = {}
     score = 0.0
@@ -37,7 +37,8 @@ def grade_task1(env_state: Dict[str, Any], get_file) -> Tuple[float, Dict[str, A
     if not cleaned_content:
         details["cleaned_file"] = "MISSING"
         details["score_breakdown"] = {"file_exists": 0.0, "cleaning_quality": 0.0, "report_exists": 0.0, "self_eval_accuracy": 0.0}
-        return 0.0, details
+        # BOUNDARY FIX: Return 0.001 instead of 0.0
+        return 0.001, details
 
     details["cleaned_file"] = "EXISTS"
     score += 0.10
@@ -72,7 +73,9 @@ def grade_task1(env_state: Dict[str, Any], get_file) -> Tuple[float, Dict[str, A
     if not report_content:
         details["metrics_report"] = "MISSING"
         details["score_breakdown"] = {"file_exists": 0.1, "cleaning_quality": round(score - 0.1, 4), "report_exists": 0.0, "self_eval_accuracy": 0.0}
-        return round(score, 4), details
+        # BOUNDARY FIX: Ensure score is strictly > 0.0 and < 1.0
+        safe_score = round(min(0.999, max(0.001, score)), 4)
+        return safe_score, details
 
     details["metrics_report"] = "EXISTS"
     score += 0.10
@@ -102,7 +105,8 @@ def grade_task1(env_state: Dict[str, Any], get_file) -> Tuple[float, Dict[str, A
     except (json.JSONDecodeError, ValueError, TypeError) as e:
         details["self_evaluation"] = f"Parse error: {e}"
 
-    final = round(min(1.0, max(0.0, score)), 4)
+    # BOUNDARY FIX: Clamp score between 0.001 and 0.999
+    final = round(min(0.999, max(0.001, score)), 4)
     details["final_score"] = final
     return final, details
 
@@ -141,7 +145,8 @@ def grade_task2(env_state: Dict[str, Any], get_file) -> Tuple[float, Dict[str, A
     content = get_file("train_fsdp.py")
     if not content:
         details["file"] = "MISSING"
-        return 0.0, details
+        # BOUNDARY FIX: Return 0.001 instead of 0.0
+        return 0.001, details
 
     details["file"] = "EXISTS"
     score += 0.10
@@ -205,7 +210,9 @@ def grade_task2(env_state: Dict[str, Any], get_file) -> Tuple[float, Dict[str, A
         details["memory_simulation"] = {"note": "Skipped — insufficient FSDP implementation", "partial_score": 0.0}
 
     score += memory_score
-    final = round(min(1.0, max(0.0, score)), 4)
+    
+    # BOUNDARY FIX: Clamp score between 0.001 and 0.999
+    final = round(min(0.999, max(0.001, score)), 4)
     details["final_score"] = final
     return final, details
 
@@ -248,7 +255,8 @@ def grade_task3(env_state: Dict[str, Any], get_file) -> Tuple[float, Dict[str, A
     content = get_file("fast_silu_kernel.py")
     if not content:
         details["file"] = "MISSING"
-        return 0.0, details
+        # BOUNDARY FIX: Return 0.001 instead of 0.0
+        return 0.001, details
 
     details["file"] = "EXISTS"
     score += 0.10
@@ -326,7 +334,8 @@ def grade_task3(env_state: Dict[str, Any], get_file) -> Tuple[float, Dict[str, A
     }
     score += latency_score
 
-    final = round(min(1.0, max(0.0, score)), 4)
+    # BOUNDARY FIX: Clamp score between 0.001 and 0.999
+    final = round(min(0.999, max(0.001, score)), 4)
     details["final_score"] = final
     return final, details
 
@@ -347,7 +356,8 @@ def grade(task_id: str, env_state: Dict[str, Any], get_file) -> Dict[str, Any]:
     elif task_id == "task3_triton_kernel":
         score, details = grade_task3(env_state, get_file)
     else:
-        return {"task_id": task_id, "score": 0.0, "details": {"error": f"Unknown task: {task_id}"}, "passed": False}
+        # BOUNDARY FIX: Return 0.001 for unknown tasks
+        return {"task_id": task_id, "score": 0.001, "details": {"error": f"Unknown task: {task_id}"}, "passed": False}
 
     return {
         "task_id": task_id,
