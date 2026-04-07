@@ -1,8 +1,12 @@
-<p align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:3b82f6,100:6366f1&height=200&section=header&text=FrontierLabs-Env&fontSize=40&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=AI%20Infrastructure%20Simulation%20Sandbox&descAlignY=55&descSize=18" />
-</p>
-
-
+---
+title: FrontierLabs-Env
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+# FrontierLabs-Env 🚀
 
 > **An OpenEnv-compliant AI Infrastructure Simulation Sandbox** — drops an AI agent into a failing PyTorch/GPU supercomputing environment. The agent must autonomously act as a Principal AI Infrastructure Engineer.
 
@@ -18,6 +22,7 @@
 As AI models scale to hundreds of billions of parameters, evaluating agents on elite infrastructure tasks — data security auditing, distributed training optimization, and GPU kernel engineering — is impossible without risking actual multi-million-dollar server clusters.
 
 **FrontierLabs-Env solves this** by providing a strictly deterministic, fully sandboxed simulation of these scenarios with programmatic graders and a rich partial-reward signal.
+
 ---
 
 ## Environment Description
