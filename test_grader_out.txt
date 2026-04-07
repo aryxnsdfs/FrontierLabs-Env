@@ -1,0 +1,6 @@
+task1_security_audit empty: score = 0.001
+task1_security_audit perfect: score = 0.999
+task2_fsdp_cluster empty: score = 0.001
+task2_fsdp_cluster perfect: score = 0.7
+task3_triton_kernel empty: score = 0.001
+task3_triton_kernel perfect: score = 0.85

@@ -327,7 +327,7 @@ def run_task_with_llm(client: openai.OpenAI, task_id: str, verbose: bool = True)
                 if verbose:
                     print(f"    API error (attempt {attempt+1}/{max_retries}): {e}")
                 if attempt == max_retries - 1:
-                    print(f"[END] task={task_id} score=0.0000 steps={actual_steps}", flush=True)
+                    print(f"[END] task={task_id} score=0.0010 steps={actual_steps}", flush=True)
                     return 0.001
                 time.sleep(3)
         
@@ -487,6 +487,7 @@ def main():
             traceback.print_exc() 
             
             # 🔴 CHANGE: Set fallback score to 0.001 instead of 0.0
+            print(f"[END] task={task_id} score=0.0010 steps=0", flush=True)
             results[task_id] = {"score": 0.001, "passed": False, "error": str(e)}
             if verbose:
                 print(f"  ERROR on {task_id}: {e}")
