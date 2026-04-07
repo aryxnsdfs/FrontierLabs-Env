@@ -28,10 +28,10 @@ except ImportError:
 # Configuration
 # ---------------------------------------------------------------------------
 
-BASE_URL = os.environ.get("FRONTIER_ENV_URL", "http://localhost:7860")
-API_BASE_URL = os.environ.get("API_BASE_URL", "https://api.openai.com/v1")
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
-MODEL_NAME = os.environ.get("MODEL_NAME", "gpt-4o")
+BASE_URL = os.getenv("FRONTIER_ENV_URL", "http://localhost:7860")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o")
+HF_TOKEN = os.getenv("HF_TOKEN")
 MAX_STEPS_PER_TASK = 15
 
 # ---------------------------------------------------------------------------
