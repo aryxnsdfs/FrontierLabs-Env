@@ -1,11 +1,7 @@
----
-title: FrontierLabs-Env
-emoji: 🚀
-colorFrom: blue
-colorTo: indigo
-sdk: docker
-pinned: false
----
+<p align="center">
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:3b82f6,100:6366f1&height=200&section=header&text=FrontierLabs-Env&fontSize=40&fontColor=ffffff&animation=fadeIn&fontAlignY=35&desc=AI%20Infrastructure%20Simulation%20Sandbox&descAlignY=55&descSize=18" />
+</p>
+
 
 # FrontierLabs-Env 🚀
 
