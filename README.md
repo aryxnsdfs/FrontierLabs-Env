@@ -6,6 +6,7 @@ colorTo: indigo
 sdk: docker
 pinned: false
 ---
+
 # FrontierLabs-Env 🚀
 
 > **An OpenEnv-compliant AI Infrastructure Simulation Sandbox** — drops an AI agent into a failing PyTorch/GPU supercomputing environment. The agent must autonomously act as a Principal AI Infrastructure Engineer.
@@ -22,7 +23,6 @@ pinned: false
 As AI models scale to hundreds of billions of parameters, evaluating agents on elite infrastructure tasks — data security auditing, distributed training optimization, and GPU kernel engineering — is impossible without risking actual multi-million-dollar server clusters.
 
 **FrontierLabs-Env solves this** by providing a strictly deterministic, fully sandboxed simulation of these scenarios with programmatic graders and a rich partial-reward signal.
-
 ---
 
 ## Environment Description
