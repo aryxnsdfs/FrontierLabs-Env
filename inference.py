@@ -269,6 +269,8 @@ if __name__ == '__main__':
 
 def run_task_with_llm(client: openai.OpenAI, task_id: str, verbose: bool = True) -> float:
     """Run an LLM agent against the given task using the OpenAI client. Returns final grader score."""
+    print(f"[START] task={task_id}", flush=True)
+    
     if verbose:
         print(f"\n{'='*60}")
         print(f"  TASK: {task_id}")
@@ -278,10 +280,17 @@ def run_task_with_llm(client: openai.OpenAI, task_id: str, verbose: bool = True)
     reset_resp = env_reset(task_id)
     obs = reset_resp["observation"]
 
-    task_short = task_id.split("_")[1][:5]
+    # --- SAFELY GRAB THE README CONTENT ---
+    files_dict = obs.get('files', {})
+    file_keys = list(files_dict.keys())
+    
+    # Extract just the first part of the task ID (e.g., 'task1' from 'task1_security_audit')
+    task_short = task_id.split("_")[0] 
     readme_key = f"README_{task_short}.txt"
-    file_keys = list(obs['files'].keys())
-    readme_content = obs['files'].get(readme_key, obs['files'].get(file_keys[0], ''))
+    
+    # Safely get the content. If the README doesn't exist, it defaults to an empty string
+    readme_content = files_dict.get(readme_key, "")
+    # --------------------------------------
 
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
@@ -293,11 +302,13 @@ def run_task_with_llm(client: openai.OpenAI, task_id: str, verbose: bool = True)
         )}
     ]
 
+    actual_steps = 0
     for step_num in range(MAX_STEPS_PER_TASK):
+        actual_steps += 1
         if verbose:
             print(f"\n  Step {step_num + 1}/{MAX_STEPS_PER_TASK}:")
 
-        # Call Gemini with retry
+        # Call LLM with retry
         max_retries = 3
         raw = ""
         for attempt in range(max_retries):
@@ -308,6 +319,7 @@ def run_task_with_llm(client: openai.OpenAI, task_id: str, verbose: bool = True)
                     temperature=0.1,
                     max_tokens=2000,
                 )
+                # FIX: Access the first choice in the choices list
                 if response.choices and response.choices[0].message.content:
                     raw = response.choices[0].message.content.strip()
                 break
@@ -315,14 +327,13 @@ def run_task_with_llm(client: openai.OpenAI, task_id: str, verbose: bool = True)
                 if verbose:
                     print(f"    API error (attempt {attempt+1}/{max_retries}): {e}")
                 if attempt == max_retries - 1:
-                    # Give up on the whole task if it keeps failing
+                    print(f"[END] task={task_id} score=0.0000 steps={actual_steps}", flush=True)
                     return 0.0
                 time.sleep(3)
         
         if not raw:
             if verbose:
                 print("    Failed to get valid text from API response. Skipping step.")
-            # Nudge the agent so the prompt changes, breaking the infinite failure loop
             messages.append({"role": "user", "content": "Your last response was empty or blocked. Please provide a valid JSON action."})
             continue
 
@@ -331,7 +342,6 @@ def run_task_with_llm(client: openai.OpenAI, task_id: str, verbose: bool = True)
 
         # Parse JSON action
         try:
-            # Extract JSON from response (handle possible markdown wrapping)
             start = raw.find("{")
             end = raw.rfind("}") + 1
             if start >= 0 and end > start:
@@ -357,12 +367,13 @@ def run_task_with_llm(client: openai.OpenAI, task_id: str, verbose: bool = True)
         reward = step_resp["reward"]["value"]
         done = step_resp["done"]
         expl = step_resp["reward"]["explanation"]
+        
+        print(f"[STEP] step={actual_steps} reward={reward:.4f}", flush=True)
 
         if verbose:
             print(f"    Reward: {reward:+.3f} | {expl[:100]}")
             print(f"    Partial score: {obs['partial_score']:.3f}")
 
-        # Add exchange to messages
         messages.append({"role": "assistant", "content": raw})
         
         warning = ""
@@ -382,19 +393,22 @@ def run_task_with_llm(client: openai.OpenAI, task_id: str, verbose: bool = True)
         if done:
             break
 
-        time.sleep(0.2)  # Rate limit courtesy
+        time.sleep(0.2)
 
-    # Get final grade
     grade_resp = env_grader()
     score = grade_resp["score"]
+    
+    print(f"[END] task={task_id} score={score:.4f} steps={actual_steps}", flush=True)
+    
     if verbose:
         print(f"\n  Final grader score: {score:.4f}")
         print(f"  Passed: {grade_resp['passed']}")
     return score
 
-
 def run_task_with_expert(task_id: str, verbose: bool = True) -> float:
     """Run the deterministic expert solution. Used when no API key is set."""
+    print(f"[START] task={task_id}", flush=True)
+
     if verbose:
         print(f"\n{'='*60}")
         print(f"  TASK: {task_id} (expert solution — no API key)")
@@ -403,12 +417,18 @@ def run_task_with_expert(task_id: str, verbose: bool = True) -> float:
     env_reset(task_id)
     actions = EXPERT_SOLUTIONS.get(task_id, [])
 
+    actual_steps = 0
     for i, action in enumerate(actions):
+        actual_steps += 1
         if verbose:
             print(f"  Step {i+1}: {action['action_type']} {action.get('filename', '')}")
+        
         resp = env_step(action)
         reward = resp["reward"]["value"]
         expl = resp["reward"]["explanation"]
+        
+        print(f"[STEP] step={actual_steps} reward={reward:.4f}", flush=True)
+        
         if verbose:
             print(f"    Reward: {reward:+.3f} | {expl[:100]}")
         if resp["done"]:
@@ -417,10 +437,12 @@ def run_task_with_expert(task_id: str, verbose: bool = True) -> float:
 
     grade_resp = env_grader()
     score = grade_resp["score"]
+    
+    print(f"[END] task={task_id} score={score:.4f} steps={actual_steps}", flush=True)
+    
     if verbose:
         print(f"\n  Final grader score: {score:.4f} | Passed: {grade_resp['passed']}")
     return score
-
 
 # ---------------------------------------------------------------------------
 # Main
@@ -460,10 +482,14 @@ def main():
                 score = run_task_with_expert(task_id, verbose=verbose)
             results[task_id] = {"score": round(score, 4), "passed": score >= 0.8}
         except Exception as e:
+            import traceback
+            print(f"\n[CRASH DETECTED ON {task_id}]")
+            traceback.print_exc()  # This prints the exact line causing the issue!
+            
             results[task_id] = {"score": 0.0, "passed": False, "error": str(e)}
             if verbose:
                 print(f"  ERROR on {task_id}: {e}")
-
+    
     avg = sum(r["score"] for r in results.values()) / len(results) if results else 0.0
     summary = {
         "model": MODEL_NAME if use_llm else "expert",
