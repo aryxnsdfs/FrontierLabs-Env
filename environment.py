@@ -181,7 +181,8 @@ class FrontierLabsEnv:
 
         self._last_reward = max(-1.0, min(1.0, reward))
         self._last_reward_explanation = info.get("explanation", "")
-        self._partial_score = max(0.0, min(1.0, self._partial_score + max(0.0, reward)))
+        raw_score = self._partial_score + max(0.0, reward)
+        self._partial_score = max(0.001, min(0.999, raw_score))
 
         obs = self._build_observation()
         return obs, self._last_reward, self._done, info
